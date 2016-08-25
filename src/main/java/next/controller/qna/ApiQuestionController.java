@@ -16,11 +16,11 @@ import com.google.common.collect.Maps;
 
 import core.web.argumentresolver.LoginUser;
 import next.CannotOperateException;
-import next.dao.AnswerDao;
 import next.model.Answer;
 import next.model.Question;
 import next.model.Result;
 import next.model.User;
+import next.repository.AnswerRepository;
 import next.repository.QuestionRepository;
 import next.service.QnaService;
 
@@ -30,12 +30,11 @@ public class ApiQuestionController {
 	private Logger log = LoggerFactory.getLogger(ApiQuestionController.class);
 	
 	@Autowired
-	private AnswerDao answerDao;
-	@Autowired
 	private QnaService qnaService;
-	
 	@Autowired
 	private QuestionRepository questionRepository;
+	@Autowired
+	private AnswerRepository answerRepository;
 	
 	@RequestMapping(value="/{questionId}", method=RequestMethod.DELETE)
 	public Result deleteQuestion(@LoginUser User loginUser, @PathVariable long questionId) throws Exception {
@@ -56,10 +55,11 @@ public class ApiQuestionController {
 	public Map<String, Object> addAnswer(@LoginUser User loginUser, @PathVariable long questionId, String contents) throws Exception {
 		log.debug("questionId : {}, contents : {}", questionId, contents);
     	Map<String, Object> values = Maps.newHashMap();
-    	Answer answer = new Answer(loginUser.getUserId(), contents, questionId);
-    	Answer savedAnswer = answerDao.insert(answer);
+    	Question targetQuestion = questionRepository.findOne(questionId);
+    	Answer answer = new Answer(loginUser, contents, targetQuestion);
+    	Answer savedAnswer = answerRepository.save(answer);
     	
-    	Question findOne = questionRepository.findOne(savedAnswer.getQuestionId());
+    	Question findOne = questionRepository.findOne(savedAnswer.getQuestion().getQuestionId());
     	findOne.updateCount();
     	// transaction이 알아서 update 해 줌.
 //    	questionRepository.save(findOne);
@@ -71,13 +71,13 @@ public class ApiQuestionController {
 	
 	@RequestMapping(value = "/{questionId}/answers/{answerId}", method = RequestMethod.DELETE)
 	public Result deleteAnswer(@LoginUser User loginUser, @PathVariable long answerId) throws Exception {
-		Answer answer = answerDao.findById(answerId);
+		Answer answer = answerRepository.findOne(answerId);
 		if (!answer.isSameUser(loginUser)) {
 			return Result.fail("다른 사용자가 쓴 글을 삭제할 수 없습니다.");
 		}
 		
 		try {
-			answerDao.delete(answerId);
+			answerRepository.delete(answerId);
 			return Result.ok();
 		} catch (DataAccessException e) {
 			return Result.fail(e.getMessage());
