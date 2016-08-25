@@ -2,10 +2,23 @@ package next.model;
 
 import java.util.Date;
 
-public class Question {
-	private long questionId;
+import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 
-	private String writer;
+@Entity
+public class Question {
+	@Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+	private Long id;
+	
+	@ManyToOne
+	@JoinColumn(foreignKey = @ForeignKey(name = "fk_question_writer"))
+	private User writer;
 
 	private String title;
 
@@ -18,13 +31,13 @@ public class Question {
 	public Question() {
 	}
 
-	public Question(String writer, String title, String contents) {
+	public Question(User writer, String title, String contents) {
 		this(0, writer, title, contents, new Date(), 0);
 	}
 
-	public Question(long questionId, String writer, String title, String contents, Date createdDate,
+	public Question(long questionId, User writer, String title, String contents, Date createdDate,
 			int countOfComment) {
-		this.questionId = questionId;
+		this.id = questionId;
 		this.writer = writer;
 		this.title = title;
 		this.contents = contents;
@@ -33,11 +46,11 @@ public class Question {
 	}
 
 	public long getQuestionId() {
-		return questionId;
+		return id;
 	}
 
 	public void setQuestionId(long questionId) {
-		this.questionId = questionId;
+		this.id = questionId;
 	}
 
 	public String getTitle() {
@@ -56,7 +69,7 @@ public class Question {
 		this.contents = contents;
 	}
 
-	public String getWriter() {
+	public User getWriter() {
 		return writer;
 	}
 
@@ -73,7 +86,7 @@ public class Question {
 	}
 	
 	public Question newQuestion(User user) {
-		return new Question(user.getUserId(), title, contents);
+		return new Question(user, title, contents);
 	}
 	
 	public boolean isSameUser(User user) {
@@ -87,7 +100,7 @@ public class Question {
 
 	@Override
 	public String toString() {
-		return "Question [questionId=" + questionId + ", writer=" + writer + ", title=" + title + ", contents="
+		return "Question [questionId=" + id + ", writer=" + writer + ", title=" + title + ", contents="
 				+ contents + ", createdDate=" + createdDate + ", countOfComment=" + countOfComment + "]";
 	}
 
@@ -95,7 +108,7 @@ public class Question {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (int) (questionId ^ (questionId >>> 32));
+		result = prime * result + (int) (id ^ (id >>> 32));
 		return result;
 	}
 
@@ -108,8 +121,12 @@ public class Question {
 		if (getClass() != obj.getClass())
 			return false;
 		Question other = (Question) obj;
-		if (questionId != other.questionId)
+		if (id != other.id)
 			return false;
 		return true;
+	}
+
+	public void updateCount() {
+		countOfComment+=1;
 	}
 }

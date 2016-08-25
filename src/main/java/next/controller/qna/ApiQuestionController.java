@@ -3,15 +3,6 @@ package next.controller.qna;
 import java.util.List;
 import java.util.Map;
 
-import next.CannotOperateException;
-import next.dao.AnswerDao;
-import next.dao.QuestionDao;
-import next.model.Answer;
-import next.model.Question;
-import next.model.Result;
-import next.model.User;
-import next.service.QnaService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.collect.Maps;
 
 import core.web.argumentresolver.LoginUser;
+import next.CannotOperateException;
+import next.dao.AnswerDao;
+import next.model.Answer;
+import next.model.Question;
+import next.model.Result;
+import next.model.User;
+import next.repository.QuestionRepository;
+import next.service.QnaService;
 
 @RestController
 @RequestMapping("/api/questions")
@@ -31,11 +30,12 @@ public class ApiQuestionController {
 	private Logger log = LoggerFactory.getLogger(ApiQuestionController.class);
 	
 	@Autowired
-	private QuestionDao questionDao;
-	@Autowired
 	private AnswerDao answerDao;
 	@Autowired
 	private QnaService qnaService;
+	
+	@Autowired
+	private QuestionRepository questionRepository;
 	
 	@RequestMapping(value="/{questionId}", method=RequestMethod.DELETE)
 	public Result deleteQuestion(@LoginUser User loginUser, @PathVariable long questionId) throws Exception {
@@ -49,7 +49,7 @@ public class ApiQuestionController {
 	
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public List<Question> list() throws Exception {
-		return questionDao.findAll();
+		return questionRepository.findAll();
 	}
 	
 	@RequestMapping(value = "/{questionId}/answers", method = RequestMethod.POST)
@@ -58,7 +58,11 @@ public class ApiQuestionController {
     	Map<String, Object> values = Maps.newHashMap();
     	Answer answer = new Answer(loginUser.getUserId(), contents, questionId);
     	Answer savedAnswer = answerDao.insert(answer);
-		questionDao.updateCountOfAnswer(savedAnswer.getQuestionId());
+    	
+    	Question findOne = questionRepository.findOne(savedAnswer.getQuestionId());
+    	findOne.updateCount();
+    	// transaction이 알아서 update 해 줌.
+//    	questionRepository.save(findOne);
 		
 		values.put("answer", savedAnswer);
 		values.put("result", Result.ok());
